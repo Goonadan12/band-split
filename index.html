@@ -36,11 +36,11 @@
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); margin-top: 16px; }
   .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0; padding: 14px 16px 6px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
 
-  .totals { display: grid; grid-template-columns: repeat(4, 1fr); padding: 6px 8px 14px; }
+  .totals { display: grid; grid-template-columns: repeat(5, 1fr); padding: 6px 8px 14px; }
   .totals div { padding: 4px 8px; }
   .totals .k { font-size: 12px; color: var(--muted); }
   .totals .v { font-size: 18px; font-weight: 650; font-variant-numeric: tabular-nums; }
-  @media (max-width: 520px) { .totals { grid-template-columns: repeat(2, 1fr); row-gap: 8px; } }
+  @media (max-width: 600px) { .totals { grid-template-columns: repeat(2, 1fr); row-gap: 8px; } }
 
   .people { list-style: none; margin: 0; padding: 0 0 6px; }
   .people li { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--line); }
@@ -164,6 +164,7 @@
         <div><div class="k">Income</div><div class="v" id="tInc">£0</div></div>
         <div><div class="k">Net cost</div><div class="v" id="tNet">£0</div></div>
         <div><div class="k">Per person</div><div class="v" id="tEach">£0</div></div>
+        <div><div class="k">Band kitty</div><div class="v" id="tKitty">£0</div></div>
       </div>
     </section>
 
@@ -249,6 +250,7 @@
 <script>
 const LS_TOKEN = "bandsplit.token", LS_REPO = "bandsplit.repo", LS_CACHE = "bandsplit.cache";
 const DEFAULT_REPO = "Goonadan12/band-split-data";
+const KITTY = "Band kitty";
 const COLORS = ["#17a589", "#6366f1", "#e11d48", "#d97706", "#0891b2", "#9333ea"];
 const ICON = { expense: "🧾", income: "💷", payment: "🤝" };
 
@@ -336,9 +338,10 @@ async function commit(mutate, message) {
 }
 
 // ---------- calculations ----------
-// Positive balance = the band owes this person; negative = they owe the band.
+// Positive balance = this person is owed; negative = they owe. The kitty is an extra
+// account that can receive income, pay for things and pay members back, but takes no share.
 function compute() {
-  const bal = Object.fromEntries(data.members.map(m => [m, 0]));
+  const bal = Object.fromEntries([...data.members, KITTY].map(m => [m, 0]));
   const paid = { ...bal }, held = { ...bal };
   let exp = 0, inc = 0;
   for (const e of data.entries) {
@@ -356,15 +359,23 @@ function compute() {
     if (e.type === "expense") { exp += p; if (e.paidBy in paid) paid[e.paidBy] += p; }
     else { inc += p; if (e.paidBy in held) held[e.paidBy] += p; }
   }
-  return { bal, paid, held, exp, inc, net: exp - inc };
+  // Money in the kitty belongs to everyone equally, so each member keeps an equal stake in it
+  // (`stake`) and only the amounts above that stake need settling. The kitty pays people back first.
+  const kitty = -bal[KITTY];
+  const stake = Math.max(0, Math.min(...data.members.map(m => bal[m])));
+  const owed = Object.fromEntries(data.members.map(m => [m, bal[m] - stake]));
+  owed[KITTY] = bal[KITTY] + stake * data.members.length;
+  return { bal: owed, paid, held, exp, inc, net: exp - inc, kitty, stake };
 }
-// Minimal set of payments that clears all balances (largest debtor pays largest creditor).
+// Minimal set of payments that clears all balances (largest debtor pays largest creditor;
+// the kitty always pays out first).
 function simplify(bal) {
   const cred = [], debt = [];
   for (const [m, v] of Object.entries(bal)) {
     if (v > 0) cred.push([m, v]); else if (v < 0) debt.push([m, -v]);
   }
-  cred.sort((a, b) => b[1] - a[1]); debt.sort((a, b) => b[1] - a[1]);
+  cred.sort((a, b) => b[1] - a[1]);
+  debt.sort((a, b) => (b[0] === KITTY) - (a[0] === KITTY) || b[1] - a[1]);
   const out = [];
   let i = 0, j = 0;
   while (i < debt.length && j < cred.length) {
@@ -380,7 +391,9 @@ function simplify(bal) {
 // ---------- rendering ----------
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const color = m => COLORS[Math.max(0, data.members.indexOf(m)) % COLORS.length];
-const avatar = m => `<div class="avatar" style="background:${color(m)}">${esc(m[0] || "?")}</div>`;
+const avatar = m => m === KITTY
+  ? `<div class="avatar" style="background:var(--income-soft)">🏦</div>`
+  : `<div class="avatar" style="background:${color(m)}">${esc(m[0] || "?")}</div>`;
 
 function render() {
   const c = compute();
@@ -389,8 +402,12 @@ function render() {
   $("tInc").textContent = gbp(c.inc);
   $("tNet").textContent = gbp(c.net);
   $("tEach").textContent = gbp(Math.round(c.net / n));
+  $("tKitty").textContent = gbp(c.kitty);
 
-  $("people").innerHTML = data.members.map(m => {
+  const kittyRow = `<li>${avatar(KITTY)}<div><div class="name">${KITTY}</div>
+      <div class="sub">${c.kitty > 0 ? `${gbp(Math.round(c.kitty / n))} each for future costs` : c.kitty < 0 ? "overdrawn" : "empty"}</div></div>
+      <div class="bal ${c.kitty < 0 ? "neg" : "zero"}"><div class="lbl">in hand</div><div class="amt">${gbp(c.kitty)}</div></div></li>`;
+  $("people").innerHTML = kittyRow + data.members.map(m => {
     const v = c.bal[m];
     const [cls, lbl] = v > 0 ? ["pos", "is owed"] : v < 0 ? ["neg", "owes"] : ["zero", "settled up"];
     const sub = [`paid ${gbp(c.paid[m])}`, c.held[m] ? `holding ${gbp(c.held[m])} income` : ""].filter(Boolean).join(" · ");
@@ -404,8 +421,8 @@ function render() {
         <button class="btn small" data-settle='${esc(JSON.stringify(t))}'>Record</button></li>`).join("")
     : `<li class="empty">Everyone is settled up 🎉</li>`;
 
-  $("filters").innerHTML = ["all", ...data.members].map(f =>
-    `<button class="chip ${filter === f ? "on" : ""}" data-filter="${esc(f)}">${f === "all" ? "All" : esc(f)}</button>`).join("");
+  $("filters").innerHTML = ["all", ...data.members, KITTY].map(f =>
+    `<button class="chip ${filter === f ? "on" : ""}" data-filter="${esc(f)}">${f === "all" ? "All" : f === KITTY ? "Kitty" : esc(f)}</button>`).join("");
 
   const list = [...data.entries]
     .filter(e => filter === "all" || e.paidBy === filter || e.from === filter || e.to === filter || (e.split || []).includes(filter))
@@ -442,6 +459,7 @@ function summaryText() {
     `Expenses: ${gbp(c.exp)}`,
     `Income: −${gbp(c.inc)}`,
     `Net cost: ${gbp(c.net)} (${gbp(Math.round(c.net / n))} each)`,
+    `Band kitty: ${gbp(c.kitty)} in hand`,
     ``,
     `Balances:`,
     ...data.members.map(m => {
@@ -457,13 +475,15 @@ function summaryText() {
 // ---------- add / edit dialog ----------
 let editing = null, curType = "expense";
 const today = () => new Date().toLocaleDateString("en-CA");
-const opts = (sel) => data.members.map(m => `<option ${m === sel ? "selected" : ""}>${esc(m)}</option>`).join("");
+const opts = (sel) => [...data.members, KITTY].map(m => `<option ${m === sel ? "selected" : ""}>${esc(m)}</option>`).join("");
 
 function setType(t) {
   curType = t;
   document.querySelectorAll("#typeSeg button").forEach(b => b.classList.toggle("on", b.dataset.type === t));
   document.querySelectorAll("[data-for]").forEach(el => el.hidden = !el.dataset.for.split(" ").includes(t));
   $("paidLbl").textContent = t === "income" ? "Received by" : "Paid by";
+  // New income goes to the kitty by default; new expenses default to a member.
+  if (!editing && !$("fPaid").dataset.touched) $("fPaid").value = t === "income" ? KITTY : data.members[0];
   $("dlgTitle").textContent = (editing ? "Edit " : "Add ") + t;
   updateHint();
 }
@@ -479,6 +499,7 @@ function openEntry(entry, preset) {
   $("fDate").value = e.date || today();
   $("fNotes").value = e.notes || "";
   $("fPaid").innerHTML = opts(e.paidBy || data.members[0]);
+  delete $("fPaid").dataset.touched;
   $("fFrom").innerHTML = opts(e.from || data.members[0]);
   $("fTo").innerHTML = opts(e.to || data.members[1]);
   const split = e.split || data.members;
@@ -545,6 +566,7 @@ async function saveMembers() {
   const next = $("membersIn").value.split("\n").map(s => s.trim()).filter(Boolean);
   if (next.length < 2) return $("setErr").textContent = "Need at least two members.";
   if (new Set(next).size !== next.length) return $("setErr").textContent = "Names must be different.";
+  if (next.includes(KITTY)) return $("setErr").textContent = `"${KITTY}" is reserved for the kitty.`;
   const old = data.members;
   // Same number of members → treat as renames by position; otherwise only additions/removals.
   const renames = next.length === old.length ? Object.fromEntries(old.map((m, i) => [m, next[i]])) : {};
@@ -608,6 +630,7 @@ $("cancelBtn").onclick = () => $("entryDlg").close();
 $("delBtn").onclick = deleteEntry;
 $("typeSeg").onclick = ev => { const t = ev.target.dataset.type; if (t) setType(t); };
 $("fAmt").addEventListener("input", updateHint);
+$("fPaid").addEventListener("change", () => { $("fPaid").dataset.touched = "1"; });
 $("fSplit").addEventListener("change", updateHint);
 $("activity").onclick = ev => {
   const row = ev.target.closest(".entry");
