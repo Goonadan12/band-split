@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Band Split</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎸</text></svg>">
+<style>
+  :root {
+    --bg: #f4f6f8; --card: #ffffff; --text: #1d2433; --muted: #6b7385; --line: #e3e7ee;
+    --accent: #17a589; --accent-ink: #ffffff; --accent-soft: #e3f5f0;
+    --pos: #137a4f; --pos-soft: #e5f4ec; --neg: #c2410c; --neg-soft: #fdeee6;
+    --income: #2563eb; --income-soft: #e8efff; --shadow: 0 1px 3px rgba(20,30,50,.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151b; --card: #1b2029; --text: #e8ebf1; --muted: #9aa3b5; --line: #2a313d;
+      --accent: #2bc4a2; --accent-ink: #08221c; --accent-soft: #163a33;
+      --pos: #4ade80; --pos-soft: #16301f; --neg: #fb923c; --neg-soft: #3a2316;
+      --income: #7aa2ff; --income-soft: #1c2847; --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding-bottom: 96px; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 16px; }
+  header { background: var(--accent); color: var(--accent-ink); padding: 18px 0 16px; }
+  header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  header h1 { margin: 0; font-size: 22px; letter-spacing: -.01em; }
+  header .sync { font-size: 12px; opacity: .85; }
+  .icon-btn { background: transparent; border: 0; color: inherit; font-size: 20px; cursor: pointer; padding: 6px; border-radius: 8px; }
+  .icon-btn:hover { background: rgba(255,255,255,.15); }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); margin-top: 16px; }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0; padding: 14px 16px 6px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+
+  .totals { display: grid; grid-template-columns: repeat(4, 1fr); padding: 6px 8px 14px; }
+  .totals div { padding: 4px 8px; }
+  .totals .k { font-size: 12px; color: var(--muted); }
+  .totals .v { font-size: 18px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  @media (max-width: 520px) { .totals { grid-template-columns: repeat(2, 1fr); row-gap: 8px; } }
+
+  .people { list-style: none; margin: 0; padding: 0 0 6px; }
+  .people li { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--line); }
+  .people li:first-child { border-top: 0; }
+  .avatar { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; color: #fff; flex: none; font-size: 15px; }
+  .people .name { font-weight: 600; }
+  .people .sub { font-size: 13px; color: var(--muted); }
+  .people .bal { margin-left: auto; text-align: right; font-variant-numeric: tabular-nums; }
+  .people .bal .lbl { font-size: 12px; }
+  .people .bal .amt { font-weight: 700; font-size: 17px; }
+  .pos { color: var(--pos); } .neg { color: var(--neg); } .zero { color: var(--muted); }
+
+  .settle { list-style: none; margin: 0; padding: 0 0 8px; }
+  .settle li { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-top: 1px solid var(--line); }
+  .settle li:first-child { border-top: 0; }
+  .settle .txt { flex: 1; }
+  .settle .txt b { font-variant-numeric: tabular-nums; }
+  .empty { padding: 8px 16px 16px; color: var(--muted); }
+
+  .btn { border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: 8px 14px; cursor: pointer; font-weight: 600; }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .btn.small { padding: 5px 10px; font-size: 13px; }
+  .btn.danger { color: var(--neg); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .link { background: none; border: 0; color: var(--accent); cursor: pointer; font-weight: 600; font-size: 13px; text-transform: none; letter-spacing: 0; padding: 0; }
+
+  .filters { display: flex; gap: 6px; padding: 4px 16px 10px; flex-wrap: wrap; }
+  .chip { border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 4px 12px; font-size: 13px; cursor: pointer; }
+  .chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--text); font-weight: 600; }
+
+  .month { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: 12px 16px 4px; background: var(--bg); border-top: 1px solid var(--line); }
+  .entry { display: flex; gap: 12px; align-items: center; padding: 10px 16px; border-top: 1px solid var(--line); cursor: pointer; }
+  .entry:hover { background: var(--accent-soft); }
+  .entry .date { width: 34px; text-align: center; flex: none; line-height: 1.1; }
+  .entry .date .d { font-size: 18px; font-weight: 700; }
+  .entry .date .m { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+  .entry .badge { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; flex: none; font-size: 17px; }
+  .badge.expense { background: var(--neg-soft); } .badge.income { background: var(--income-soft); } .badge.payment { background: var(--pos-soft); }
+  .entry .main { flex: 1; min-width: 0; }
+  .entry .title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .entry .meta { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .entry .amt { text-align: right; font-variant-numeric: tabular-nums; flex: none; }
+  .entry .amt .big { font-weight: 700; }
+  .entry .amt .each { font-size: 12px; color: var(--muted); }
+
+  .fab { position: fixed; left: 50%; transform: translateX(-50%); bottom: max(20px, env(safe-area-inset-bottom)); background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 999px; padding: 14px 26px; font-size: 16px; font-weight: 700; box-shadow: 0 6px 18px rgba(0,0,0,.2); cursor: pointer; }
+
+  dialog { border: 0; border-radius: 16px; padding: 0; width: min(520px, calc(100vw - 24px)); background: var(--card); color: var(--text); max-height: calc(100vh - 24px); }
+  dialog::backdrop { background: rgba(10,15,25,.5); }
+  dialog form { padding: 18px 18px 16px; }
+  dialog h3 { margin: 0 0 14px; font-size: 18px; }
+  .seg { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--bg); border-radius: 10px; padding: 3px; margin-bottom: 14px; }
+  .seg button { border: 0; background: transparent; padding: 8px; border-radius: 8px; cursor: pointer; font-weight: 600; color: var(--muted); }
+  .seg button.on { background: var(--card); color: var(--text); box-shadow: var(--shadow); }
+  label.f { display: block; margin-bottom: 12px; }
+  label.f > span { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+  .f input, .f select, .f textarea { width: 100%; border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 10px 12px; outline: none; }
+  .f input:focus, .f select:focus, .f textarea:focus { border-color: var(--accent); }
+  .f textarea { resize: vertical; min-height: 60px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .money { position: relative; }
+  .money::before { content: "£"; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+  .money input { padding-left: 26px; font-size: 18px; font-weight: 600; }
+  .split { display: flex; flex-wrap: wrap; gap: 6px; }
+  .split label { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; cursor: pointer; font-size: 14px; }
+  .split input { accent-color: var(--accent); }
+  .hint { font-size: 13px; color: var(--muted); margin: -4px 0 12px; }
+  .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
+  .actions .spacer { flex: 1; }
+  .err { color: var(--neg); font-size: 13px; min-height: 18px; margin: 0 0 6px; }
+
+  .setup { max-width: 520px; }
+  .setup ol { padding-left: 20px; } .setup li { margin-bottom: 6px; }
+  .setup code { background: var(--bg); padding: 1px 6px; border-radius: 6px; font-size: 13px; }
+  .toast { position: fixed; left: 50%; top: 16px; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }
+  .toast.show { opacity: 1; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div>
+      <h1>🎸 Band Split</h1>
+      <div class="sync" id="sync">Not connected</div>
+    </div>
+    <div>
+      <button class="icon-btn" id="refreshBtn" title="Refresh" aria-label="Refresh">⟳</button>
+      <button class="icon-btn" id="settingsBtn" title="Settings" aria-label="Settings">⚙︎</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- Setup screen (shown until a token is saved on this device) -->
+  <section class="card setup" id="setup" hidden>
+    <h2>Connect</h2>
+    <div style="padding: 0 16px 16px">
+      <p>The expenses are kept in a private GitHub repo. Connect this device once with an access token, which is stored only in this browser.</p>
+      <ol>
+        <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub → New fine-grained token</a>.</li>
+        <li>Repository access: <b>Only select repositories</b> → <code>band-split-data</code>.</li>
+        <li>Permissions → Repository → <b>Contents: Read and write</b>.</li>
+        <li>Generate, copy and paste it below.</li>
+      </ol>
+      <form id="setupForm">
+        <label class="f"><span>Data repo (owner/name)</span><input id="repoIn" required placeholder="owner/band-split-data"></label>
+        <label class="f"><span>Access token</span><input id="tokenIn" type="password" required autocomplete="off" placeholder="github_pat_…"></label>
+        <p class="err" id="setupErr"></p>
+        <div class="actions"><button class="btn primary" type="submit">Connect</button></div>
+      </form>
+    </div>
+  </section>
+
+  <div id="app" hidden>
+    <section class="card">
+      <h2>Band totals</h2>
+      <div class="totals">
+        <div><div class="k">Expenses</div><div class="v" id="tExp">£0</div></div>
+        <div><div class="k">Income</div><div class="v" id="tInc">£0</div></div>
+        <div><div class="k">Net cost</div><div class="v" id="tNet">£0</div></div>
+        <div><div class="k">Per person</div><div class="v" id="tEach">£0</div></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Balances <button class="link" id="copyBtn">Copy summary for the band</button></h2>
+      <ul class="people" id="people"></ul>
+    </section>
+
+    <section class="card">
+      <h2>Settle up</h2>
+      <ul class="settle" id="settle"></ul>
+    </section>
+
+    <section class="card">
+      <h2>Activity</h2>
+      <div class="filters" id="filters"></div>
+      <div id="activity"></div>
+    </section>
+  </div>
+</main>
+
+<button class="fab" id="addBtn" hidden>＋ Add expense</button>
+
+<!-- Add / edit dialog -->
+<dialog id="entryDlg">
+  <form id="entryForm" method="dialog" novalidate>
+    <h3 id="dlgTitle">Add expense</h3>
+    <div class="seg" id="typeSeg">
+      <button type="button" data-type="expense">Expense</button>
+      <button type="button" data-type="income">Income</button>
+      <button type="button" data-type="payment">Payment</button>
+    </div>
+
+    <div data-for="expense income">
+      <label class="f"><span>Description</span><input id="fDesc" maxlength="80" placeholder="e.g. Rehearsal room"></label>
+    </div>
+    <div class="row2">
+      <label class="f"><span>Amount</span><div class="money"><input id="fAmt" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="0.00"></div></label>
+      <label class="f"><span>Date</span><input id="fDate" type="date"></label>
+    </div>
+    <div data-for="expense income">
+      <label class="f"><span id="paidLbl">Paid by</span><select id="fPaid"></select></label>
+      <label class="f"><span>Split equally between</span><div class="split" id="fSplit"></div></label>
+      <p class="hint" id="eachHint"></p>
+    </div>
+    <div data-for="payment">
+      <div class="row2">
+        <label class="f"><span>From</span><select id="fFrom"></select></label>
+        <label class="f"><span>To</span><select id="fTo"></select></label>
+      </div>
+      <p class="hint">Use this when one member pays another back.</p>
+    </div>
+    <label class="f"><span>Notes (optional)</span><textarea id="fNotes" maxlength="500"></textarea></label>
+    <p class="err" id="entryErr"></p>
+    <div class="actions">
+      <button class="btn danger" type="button" id="delBtn" hidden>Delete</button>
+      <span class="spacer"></span>
+      <button class="btn" type="button" id="cancelBtn">Cancel</button>
+      <button class="btn primary" type="submit" id="saveBtn">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Settings dialog -->
+<dialog id="setDlg">
+  <form method="dialog">
+    <h3>Settings</h3>
+    <label class="f"><span>Band members (one per line)</span><textarea id="membersIn" rows="5"></textarea></label>
+    <p class="hint">Renaming a member updates all their past entries. Remove a member only if they have no entries.</p>
+    <p class="err" id="setErr"></p>
+    <div class="actions">
+      <button class="btn" type="button" id="exportBtn">Download backup</button>
+      <button class="btn danger" type="button" id="logoutBtn">Disconnect</button>
+      <span class="spacer"></span>
+      <button class="btn" value="cancel">Close</button>
+      <button class="btn primary" type="button" id="saveMembersBtn">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const LS_TOKEN = "bandsplit.token", LS_REPO = "bandsplit.repo", LS_CACHE = "bandsplit.cache";
+const DEFAULT_REPO = "Goonadan12/band-split-data";
+const COLORS = ["#17a589", "#6366f1", "#e11d48", "#d97706", "#0891b2", "#9333ea"];
+const ICON = { expense: "🧾", income: "💷", payment: "🤝" };
+
+const $ = id => document.getElementById(id);
+const ls = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  del(k) { try { localStorage.removeItem(k); } catch {} },
+};
+
+let data = null;       // { members: [], entries: [] }
+let sha = null;        // GitHub blob sha of data.json
+let filter = "all";
+
+// ---------- money helpers (work in pence to avoid rounding drift) ----------
+const toP = n => Math.round(Number(n) * 100);
+const gbp = p => (p < 0 ? "-" : "") + "£" + (Math.abs(p) / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// Split `pence` across `n` people; the first (pence % n) people take the extra penny.
+function shares(pence, n) {
+  const base = Math.floor(pence / n), extra = pence - base * n;
+  return Array.from({ length: n }, (_, i) => base + (i < extra ? 1 : 0));
+}
+
+// ---------- GitHub storage ----------
+function b64encode(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = ""; bytes.forEach(b => bin += String.fromCharCode(b));
+  return btoa(bin);
+}
+function b64decode(b64) {
+  const bin = atob(b64.replace(/\n/g, ""));
+  return new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
+}
+function api(path, opts = {}) {
+  return fetch(`https://api.github.com/repos/${ls.get(LS_REPO)}/contents/${path}`, {
+    cache: "no-store",
+    ...opts,
+    headers: {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${ls.get(LS_TOKEN)}`,
+      "X-GitHub-Api-Version": "2022-11-28",
+      ...(opts.headers || {}),
+    },
+  });
+}
+async function load() {
+  setSync("Loading…");
+  const res = await api("data.json");
+  if (res.status === 404) {
+    data = { members: ["Dan", "Ali", "Benny", "James"], entries: [] };
+    sha = null;
+  } else if (!res.ok) {
+    throw new Error(res.status === 401 ? "Token rejected (401). Check it hasn't expired." : `GitHub error ${res.status}`);
+  } else {
+    const j = await res.json();
+    data = JSON.parse(b64decode(j.content));
+    sha = j.sha;
+  }
+  ls.set(LS_CACHE, JSON.stringify(data));
+  setSync("Synced " + new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }));
+}
+// Apply `mutate` to the latest data and save it; retries once if someone saved in between.
+async function commit(mutate, message) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const next = structuredClone(data);
+    mutate(next);
+    setSync("Saving…");
+    const res = await api("data.json", {
+      method: "PUT",
+      body: JSON.stringify({ message, content: b64encode(JSON.stringify(next, null, 2) + "\n"), ...(sha ? { sha } : {}) }),
+    });
+    if (res.ok) {
+      sha = (await res.json()).content.sha;
+      data = next;
+      ls.set(LS_CACHE, JSON.stringify(data));
+      setSync("Saved " + new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }));
+      render();
+      return;
+    }
+    if ((res.status === 409 || res.status === 422) && attempt === 0) { await load(); continue; }
+    setSync("Save failed");
+    throw new Error(`Couldn't save (GitHub error ${res.status}).`);
+  }
+}
+
+// ---------- calculations ----------
+// Positive balance = the band owes this person; negative = they owe the band.
+function compute() {
+  const bal = Object.fromEntries(data.members.map(m => [m, 0]));
+  const paid = { ...bal }, held = { ...bal };
+  let exp = 0, inc = 0;
+  for (const e of data.entries) {
+    const p = toP(e.amount);
+    if (e.type === "payment") {
+      if (e.from in bal) bal[e.from] += p;
+      if (e.to in bal) bal[e.to] -= p;
+      continue;
+    }
+    const split = e.split.filter(m => m in bal);
+    const parts = shares(p, split.length);
+    const sign = e.type === "expense" ? 1 : -1;
+    if (e.paidBy in bal) bal[e.paidBy] += sign * p;
+    split.forEach((m, i) => bal[m] -= sign * parts[i]);
+    if (e.type === "expense") { exp += p; if (e.paidBy in paid) paid[e.paidBy] += p; }
+    else { inc += p; if (e.paidBy in held) held[e.paidBy] += p; }
+  }
+  return { bal, paid, held, exp, inc, net: exp - inc };
+}
+// Minimal set of payments that clears all balances (largest debtor pays largest creditor).
+function simplify(bal) {
+  const cred = [], debt = [];
+  for (const [m, v] of Object.entries(bal)) {
+    if (v > 0) cred.push([m, v]); else if (v < 0) debt.push([m, -v]);
+  }
+  cred.sort((a, b) => b[1] - a[1]); debt.sort((a, b) => b[1] - a[1]);
+  const out = [];
+  let i = 0, j = 0;
+  while (i < debt.length && j < cred.length) {
+    const amt = Math.min(debt[i][1], cred[j][1]);
+    out.push({ from: debt[i][0], to: cred[j][0], pence: amt });
+    debt[i][1] -= amt; cred[j][1] -= amt;
+    if (!debt[i][1]) i++;
+    if (!cred[j][1]) j++;
+  }
+  return out;
+}
+
+// ---------- rendering ----------
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const color = m => COLORS[Math.max(0, data.members.indexOf(m)) % COLORS.length];
+const avatar = m => `<div class="avatar" style="background:${color(m)}">${esc(m[0] || "?")}</div>`;
+
+function render() {
+  const c = compute();
+  const n = data.members.length || 1;
+  $("tExp").textContent = gbp(c.exp);
+  $("tInc").textContent = gbp(c.inc);
+  $("tNet").textContent = gbp(c.net);
+  $("tEach").textContent = gbp(Math.round(c.net / n));
+
+  $("people").innerHTML = data.members.map(m => {
+    const v = c.bal[m];
+    const [cls, lbl] = v > 0 ? ["pos", "is owed"] : v < 0 ? ["neg", "owes"] : ["zero", "settled up"];
+    const sub = [`paid ${gbp(c.paid[m])}`, c.held[m] ? `holding ${gbp(c.held[m])} income` : ""].filter(Boolean).join(" · ");
+    return `<li>${avatar(m)}<div><div class="name">${esc(m)}</div><div class="sub">${sub}</div></div>
+      <div class="bal ${cls}"><div class="lbl">${lbl}</div><div class="amt">${v ? gbp(Math.abs(v)) : "—"}</div></div></li>`;
+  }).join("");
+
+  const s = simplify(c.bal);
+  $("settle").innerHTML = s.length
+    ? s.map(t => `<li>${avatar(t.from)}<div class="txt">${esc(t.from)} pays ${esc(t.to)} <b>${gbp(t.pence)}</b></div>
+        <button class="btn small" data-settle='${esc(JSON.stringify(t))}'>Record</button></li>`).join("")
+    : `<li class="empty">Everyone is settled up 🎉</li>`;
+
+  $("filters").innerHTML = ["all", ...data.members].map(f =>
+    `<button class="chip ${filter === f ? "on" : ""}" data-filter="${esc(f)}">${f === "all" ? "All" : esc(f)}</button>`).join("");
+
+  const list = [...data.entries]
+    .filter(e => filter === "all" || e.paidBy === filter || e.from === filter || e.to === filter || (e.split || []).includes(filter))
+    .sort((a, b) => b.date.localeCompare(a.date) || b.created - a.created);
+  let html = "", month = "";
+  for (const e of list) {
+    const d = new Date(e.date + "T12:00:00");
+    const mo = d.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+    if (mo !== month) { html += `<div class="month">${mo}</div>`; month = mo; }
+    const p = toP(e.amount);
+    let title, meta, each = "";
+    if (e.type === "payment") {
+      title = `${esc(e.from)} paid ${esc(e.to)}`;
+      meta = esc(e.notes || "Settle up");
+    } else {
+      title = esc(e.description);
+      meta = (e.type === "expense" ? `${esc(e.paidBy)} paid` : `${esc(e.paidBy)} received`) + (e.notes ? ` · ${esc(e.notes)}` : "");
+      each = `<div class="each">${gbp(Math.round(p / e.split.length))} each${e.split.length !== n ? ` · ${e.split.length} people` : ""}</div>`;
+    }
+    html += `<div class="entry" data-id="${esc(e.id)}">
+      <div class="date"><div class="m">${d.toLocaleDateString("en-GB", { month: "short" })}</div><div class="d">${d.getDate()}</div></div>
+      <div class="badge ${e.type}">${ICON[e.type]}</div>
+      <div class="main"><div class="title">${title}</div><div class="meta">${meta}</div></div>
+      <div class="amt"><div class="big ${e.type === "income" ? "pos" : ""}">${e.type === "income" ? "+" : ""}${gbp(p)}</div>${each}</div></div>`;
+  }
+  $("activity").innerHTML = html || `<p class="empty">No entries yet. Tap <b>＋ Add expense</b> to start.</p>`;
+}
+
+function summaryText() {
+  const c = compute(), n = data.members.length || 1;
+  const lines = [
+    `🎸 Band split — ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`,
+    ``,
+    `Expenses: ${gbp(c.exp)}`,
+    `Income: −${gbp(c.inc)}`,
+    `Net cost: ${gbp(c.net)} (${gbp(Math.round(c.net / n))} each)`,
+    ``,
+    `Balances:`,
+    ...data.members.map(m => {
+      const v = c.bal[m];
+      return `• ${m}: ${v > 0 ? "is owed " + gbp(v) : v < 0 ? "owes " + gbp(-v) : "settled up"}`;
+    }),
+  ];
+  const s = simplify(c.bal);
+  if (s.length) lines.push(``, `To settle up:`, ...s.map(t => `• ${t.from} → ${t.to}: ${gbp(t.pence)}`));
+  return lines.join("\n");
+}
+
+// ---------- add / edit dialog ----------
+let editing = null, curType = "expense";
+const today = () => new Date().toLocaleDateString("en-CA");
+const opts = (sel) => data.members.map(m => `<option ${m === sel ? "selected" : ""}>${esc(m)}</option>`).join("");
+
+function setType(t) {
+  curType = t;
+  document.querySelectorAll("#typeSeg button").forEach(b => b.classList.toggle("on", b.dataset.type === t));
+  document.querySelectorAll("[data-for]").forEach(el => el.hidden = !el.dataset.for.split(" ").includes(t));
+  $("paidLbl").textContent = t === "income" ? "Received by" : "Paid by";
+  $("dlgTitle").textContent = (editing ? "Edit " : "Add ") + t;
+  updateHint();
+}
+function updateHint() {
+  const amt = toP($("fAmt").value || 0), split = [...$("fSplit").querySelectorAll("input:checked")];
+  $("eachHint").textContent = amt > 0 && split.length ? `${gbp(Math.round(amt / split.length))} each between ${split.length}` : "";
+}
+function openEntry(entry, preset) {
+  editing = entry || null;
+  const e = entry || preset || {};
+  $("fDesc").value = e.description || "";
+  $("fAmt").value = e.amount ?? "";
+  $("fDate").value = e.date || today();
+  $("fNotes").value = e.notes || "";
+  $("fPaid").innerHTML = opts(e.paidBy || data.members[0]);
+  $("fFrom").innerHTML = opts(e.from || data.members[0]);
+  $("fTo").innerHTML = opts(e.to || data.members[1]);
+  const split = e.split || data.members;
+  $("fSplit").innerHTML = data.members.map(m =>
+    `<label><input type="checkbox" value="${esc(m)}" ${split.includes(m) ? "checked" : ""}>${esc(m)}</label>`).join("");
+  $("delBtn").hidden = !editing;
+  $("entryErr").textContent = "";
+  setType(e.type || "expense");
+  $("entryDlg").showModal();
+  if (!editing && !preset) $("fDesc").focus();
+}
+
+async function saveEntry(ev) {
+  ev.preventDefault();
+  const amount = Math.round(Number($("fAmt").value) * 100) / 100;
+  const err = msg => { $("entryErr").textContent = msg; };
+  if (!(amount > 0)) return err("Enter an amount greater than £0.");
+  if (!$("fDate").value) return err("Pick a date.");
+  const entry = {
+    id: editing ? editing.id : (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
+    created: editing ? editing.created : Date.now(),
+    type: curType, amount, date: $("fDate").value, notes: $("fNotes").value.trim(),
+  };
+  if (curType === "payment") {
+    entry.from = $("fFrom").value; entry.to = $("fTo").value;
+    if (entry.from === entry.to) return err("From and To must be different people.");
+  } else {
+    entry.description = $("fDesc").value.trim();
+    entry.paidBy = $("fPaid").value;
+    entry.split = [...$("fSplit").querySelectorAll("input:checked")].map(i => i.value);
+    if (!entry.description) return err("Add a description.");
+    if (!entry.split.length) return err("Choose at least one person to split with.");
+  }
+  $("saveBtn").disabled = true;
+  try {
+    const label = entry.type === "payment" ? `${entry.from} paid ${entry.to}` : entry.description;
+    await commit(d => {
+      const i = d.entries.findIndex(x => x.id === entry.id);
+      if (i >= 0) d.entries[i] = entry; else d.entries.push(entry);
+    }, `${editing ? "Edit" : "Add"} ${entry.type}: ${label} £${amount.toFixed(2)}`);
+    $("entryDlg").close();
+    toast(editing ? "Updated" : "Added");
+  } catch (e) { err(e.message); }
+  finally { $("saveBtn").disabled = false; }
+}
+
+async function deleteEntry() {
+  if (!editing || !confirm("Delete this entry?")) return;
+  try {
+    const id = editing.id;
+    await commit(d => { d.entries = d.entries.filter(x => x.id !== id); }, `Delete ${editing.type}: ${editing.description || "payment"}`);
+    $("entryDlg").close();
+    toast("Deleted");
+  } catch (e) { $("entryErr").textContent = e.message; }
+}
+
+// ---------- settings ----------
+function openSettings() {
+  $("membersIn").value = data ? data.members.join("\n") : "";
+  $("setErr").textContent = "";
+  $("setDlg").showModal();
+}
+async function saveMembers() {
+  const next = $("membersIn").value.split("\n").map(s => s.trim()).filter(Boolean);
+  if (next.length < 2) return $("setErr").textContent = "Need at least two members.";
+  if (new Set(next).size !== next.length) return $("setErr").textContent = "Names must be different.";
+  const old = data.members;
+  // Same number of members → treat as renames by position; otherwise only additions/removals.
+  const renames = next.length === old.length ? Object.fromEntries(old.map((m, i) => [m, next[i]])) : {};
+  const used = new Set(data.entries.flatMap(e => [e.paidBy, e.from, e.to, ...(e.split || [])]));
+  const removed = old.filter(m => !next.includes(m) && !(m in renames));
+  if (removed.some(m => used.has(m))) return $("setErr").textContent = `Can't remove ${removed.filter(m => used.has(m)).join(", ")} — they have entries.`;
+  try {
+    await commit(d => {
+      const r = m => renames[m] ?? m;
+      d.members = next;
+      d.entries.forEach(e => {
+        if (e.paidBy) e.paidBy = r(e.paidBy);
+        if (e.from) e.from = r(e.from);
+        if (e.to) e.to = r(e.to);
+        if (e.split) e.split = e.split.map(r);
+      });
+    }, "Update members");
+    $("setDlg").close();
+    toast("Members saved");
+  } catch (e) { $("setErr").textContent = e.message; }
+}
+
+// ---------- misc ----------
+function setSync(t) { $("sync").textContent = t; }
+let toastT;
+function toast(t) { const el = $("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("show"), 1800); }
+
+function showSetup(msg) {
+  $("setup").hidden = false; $("app").hidden = true; $("addBtn").hidden = true;
+  $("repoIn").value = ls.get(LS_REPO) || DEFAULT_REPO;
+  $("setupErr").textContent = msg || "";
+  setSync("Not connected");
+}
+async function start() {
+  if (!ls.get(LS_TOKEN)) return showSetup();
+  try {
+    await load();
+  } catch (e) {
+    const cached = ls.get(LS_CACHE);
+    if (!cached) return showSetup(e.message);
+    data = JSON.parse(cached);
+    setSync("Offline — showing last saved copy");
+    toast(e.message);
+  }
+  $("setup").hidden = true; $("app").hidden = false; $("addBtn").hidden = false;
+  render();
+}
+
+// ---------- events ----------
+$("setupForm").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  ls.set(LS_REPO, $("repoIn").value.trim());
+  ls.set(LS_TOKEN, $("tokenIn").value.trim());
+  $("tokenIn").value = "";
+  try { await load(); $("setup").hidden = true; $("app").hidden = false; $("addBtn").hidden = false; render(); }
+  catch (e) { ls.del(LS_TOKEN); showSetup(e.message); }
+});
+$("addBtn").onclick = () => openEntry();
+$("entryForm").addEventListener("submit", saveEntry);
+$("cancelBtn").onclick = () => $("entryDlg").close();
+$("delBtn").onclick = deleteEntry;
+$("typeSeg").onclick = ev => { const t = ev.target.dataset.type; if (t) setType(t); };
+$("fAmt").addEventListener("input", updateHint);
+$("fSplit").addEventListener("change", updateHint);
+$("activity").onclick = ev => {
+  const row = ev.target.closest(".entry");
+  if (row) openEntry(data.entries.find(e => e.id === row.dataset.id));
+};
+$("filters").onclick = ev => { const f = ev.target.dataset.filter; if (f) { filter = f; render(); } };
+$("settle").onclick = ev => {
+  const b = ev.target.closest("[data-settle]");
+  if (!b) return;
+  const t = JSON.parse(b.dataset.settle);
+  openEntry(null, { type: "payment", from: t.from, to: t.to, amount: (t.pence / 100).toFixed(2) });
+};
+$("copyBtn").onclick = async () => {
+  const text = summaryText();
+  try { await navigator.clipboard.writeText(text); toast("Summary copied — paste it in the group chat"); }
+  catch { prompt("Copy this summary:", text); }
+};
+$("refreshBtn").onclick = () => { if (ls.get(LS_TOKEN)) start(); };
+$("settingsBtn").onclick = () => { if (data) openSettings(); };
+$("saveMembersBtn").onclick = saveMembers;
+$("exportBtn").onclick = () => {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+  a.download = `band-split-backup-${today()}.json`;
+  a.click();
+};
+$("logoutBtn").onclick = () => {
+  if (!confirm("Disconnect this device? The data stays safe in GitHub.")) return;
+  ls.del(LS_TOKEN); ls.del(LS_CACHE); data = null; $("setDlg").close(); showSetup();
+};
+
+start();
+</script>
+</body>
+</html>
